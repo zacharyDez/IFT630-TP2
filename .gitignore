@@ -1,3 +1,4 @@
 .empty
 .venv
 .idea
+.pytest_cache
