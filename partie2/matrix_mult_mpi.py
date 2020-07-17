@@ -1,0 +1,6 @@
+import util.matrix_validation as mv
+
+
+def main(m1_path: str, m2_path: str) -> None:
+    if not mv.is_matrix_path_exist(m1_path) or not mv.is_matrix_path_exist(m2_path):
+        raise ValueError(f"{m1_path} or {m2_path} does not exist.")

@@ -18,7 +18,6 @@ rank = comm.Get_rank()
 if rank == 0:
 
     # Gestionnaire
-
     data = {
         'x': 1,
         'y': 2,
