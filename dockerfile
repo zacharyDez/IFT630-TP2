@@ -2,9 +2,11 @@ FROM ubuntu:latest
 
 # initial setup of linux dependencies
 RUN apt-get update \
+    && apt-get install --reinstall -y binutils \
     && apt-get install -y \
         git \ 
-        wget 
+        wget \
+        --reinstall binutils
 
 # miniconda installation simplest to install pyopencl
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ./miniconda.sh \
@@ -20,3 +22,6 @@ RUN /bin/bash -c "source $HOME/miniconda/bin/activate \
             pocl \
             pyopencl \
             pytest"
+
+# activate environment with:
+        # source $HOME/miniconda/bin/activate
