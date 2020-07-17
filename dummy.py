@@ -31,14 +31,15 @@ if rank == 0:
     ave, res = divmod(len(merge_data), num_process)
     split_merge_data = divide_array(merge_data, num_process - 1)
 
-    for i in range(len(split_merge_data)):
-        comm.send(split_merge_data[i], dest=i, tag=rank + rank * 10)
-
+    for i in range(num_process-1):
+        req = comm.isend(split_merge_data[i], dest=i+1)
+        req.wait()
+# process is a worker
 else:
-
-    # Worker
-
     # Réception de données par appel bloquant.
-    data = comm.irecv(source=0, tag=rank + rank * 10)
+    req = comm.irecv(source=0)
+    data = req.wait()
+    result = [mv[0]*mv[1] for mv in data]
+    print(f"Process {rank} received: {result}")
 
-    print(f"Process {rank} received: {data}")
+comm.Barrier()
