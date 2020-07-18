@@ -1,6 +1,7 @@
 import pyopencl as cl
 import numpy as np
 import os
+import math
 
 
 def read_file(filename):
@@ -43,6 +44,8 @@ def main():
     b = read_file("./matrice2")
     c = np.zeros(len(a), dtype=np.float)
 
+    size = math.sqrt(len(a))
+
     ctx = cl.create_some_context()
     queue = cl.CommandQueue(ctx)
 
@@ -53,33 +56,28 @@ def main():
         (ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=b)
     c_buf = cl.Buffer(ctx, mf.WRITE_ONLY, c.nbytes)
 
+    prg = cl.Program(ctx, 
+            """
+				void multiply(int n, __global float *a, __global float *b, __global float *c) {						
+			   	int gid1 = get_global_id(0);																	
+			   	int gid2 = get_global_id(1);																	
+					float value = 0;																				
+               	for(int k = 0; k < n; ++k)																		
+					{																								
+						float elementA = A[gid2 * n + k];															
+						float elementB = B[k * n + gid1];																
+						value += elementA * elementB																
+					}																									
+					C[gid2 * n + gid1] = value;																		
+				}																									
+            """).build()
     
 
-    prg = cl.Program(ctx, """
-        __kernel void multiply(ushort n,
-        ushort m, ushort p, __global float *a,
-        __global float *b, __global float *c)
-        {
-            int gid = get_global_id(0);
-            c[gid] = 0.0f;
-            int rowC = gid/p;
-            int colC = gid%p;
-            __global float *pA = &a[rowC*m];
-            __global float *pB = &b[colC];
-            for(int k=0; k<m; k++){
-                pB = &b[colC+k*p];
-                c[gid] += (*(pA++))*(*pB);
-            }
-        }
-        """).build()
-
-    prg.multiply(queue, c.shape, None,
-            np.uint16(len(a)), np.uint16(len(a)), np.uint(len(a)),
-            a_buf, b_buf, c_buf)
+    prg.multiply(queue, c.shape, None, size, a_buf, b_buf, c_buf)
         
     a_mul_b = np.empty_like(c)
     cl.enqueue_copy(queue, a_mul_b, c_buf)
 
-    print(a_mul_b.reshape(len(a), len(a)))
+    print(a_mul_b.reshape(size, size))
 
 main()

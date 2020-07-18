@@ -2,11 +2,11 @@
 #include <fstream>
 #include <algorithm>
 #include <vector>
-#include <CL/cl.hpp>
+#include <CL/cl2.hpp>
 #include <math.h>
 
 
-std::vector<int> read_files(std::string filename)
+std::vector<int> read_file(std::string filename)
 {
     std::ifstream file;
     file.open(filename);
@@ -46,8 +46,8 @@ std::vector<int> read_files(std::string filename)
 int main()
 {
 
-    std::vector<int> matrix1 = read_files("matrice1");
-    std::vector<int> matrix2 = read_files("matrice2");
+    std::vector<int> matrix1 = read_file("matrice1");
+    std::vector<int> matrix2 = read_file("matrice2");
 
     // Obtention des plateformes.
     std::vector<cl::Platform> available_platforms;
