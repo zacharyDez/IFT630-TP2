@@ -2,7 +2,7 @@
 #include <fstream>
 #include <algorithm>
 #include <vector>
-#include <CL/cl2.hpp>
+#include <CL/cl.hpp>
 #include <math.h>
 
 
@@ -80,7 +80,7 @@ int main()
 	// https://www.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf
 	// https://www.khronos.org/registry/OpenCL/specs/opencl-2.0.pdf
 	std::string kernel_code =
-			"	void multiply(int n, __global float *a, __global float *b, __global float *c) {						"
+			"	void multiply(int n, __global float *A, __global float *B, __global float *C) {						"
 			"   	int gid1 = get_global_id(0);																	"
 			"   	int gid2 = get_global_id(1);																	"
 			"		float value = 0;																				"
@@ -88,10 +88,11 @@ int main()
 			"		{																								"
 			"			float elementA = A[gid2 * n + k];															"
 			"			float elementB = B[k * n + gid1];															"	
-			"			value += elementA * elementB																"
+			"			value += elementA * elementB;																"
 			"		}																								"	
 			"		C[gid2 * n + gid1] = value;																		"
 			"	}																									";
+
 
 	// Sauvegarde de la source.
 	sources.push_back({
@@ -152,7 +153,8 @@ int main()
 	//  - const NDRange &offset : Décalages des indices globaux (cl::NullRange == aucun).
 	//  - const NDRange &global : Dimension des items de travail (ex: «X», «X * Y», «X * Y * Z», etc.).
 	//  - const NDRange &local  : Dimension des groupes de travail locaux (nombre de work-items par work-group).
-	queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(sqrt(size), sqrt(size)), cl::NullRange);
+	std::cout << "Je cause le seg fault, you mad?" << std::endl;
+	queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(size, size), cl::NullRange);
 
 	// Exemple d'une exécution en 2D.
 	//queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(800, 600), cl::NullRange);
