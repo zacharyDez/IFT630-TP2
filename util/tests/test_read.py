@@ -20,3 +20,4 @@ def test_yield_matrices_values() -> None:
 def test_get_matrix_size() -> None:
     mc.create_unique_value_matrix("m1.txt", 5, 3, 1)
     assert mr.get_matrix_size("m1.txt") == (5, 3)
+    os.remove("m1.txt")

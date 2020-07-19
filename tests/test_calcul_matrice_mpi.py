@@ -1,4 +1,5 @@
 import os
+import time
 from unittest import TestCase
 
 import matrix_mult_mpi
@@ -29,18 +30,15 @@ class TestMatrixMult(TestCase):
         # params following main are parameters passed
         self.assertRaises(ValueError, matrix_mult_mpi.main, "wont_write.txt", "invalid.txt", self.p1)
 
-    def test_valid_path_no_exception(self) -> None:
-        try:
-            matrix_mult_mpi.main("to_del.txt", self.p1, self.p2)
-            os.remove("to_del.txt")
-        except ValueError:
-            self.fail("matrix_mutlt_mpi() raised ValueException unexpectedly.")
-
     def test_matrices_size_exception(self) -> None:
         self.assertRaises(ValueError, matrix_mult_mpi.main, "wont_write.txt", self.p1, self.p3)
 
     def test_matrix_mult_result_correct(self) -> None:
-        matrix_mult_mpi.main("matrice_result.txt", self.p1, self.p2)
-        actual_values = [val for val in mr.get_matrix_val_gen("matrice_result.txt")]
+        os.system(f"mpiexec -n 4 python matrix_mult_mpi.py result.txt {self.p1} {self.p2}")
+
+        actual_values = [val for val in mr.get_matrix_val_gen("result.txt")]
         expected_values = [2 * 3 for x in range(0, 5 * 5)]
+
         assert actual_values == expected_values
+
+        os.remove("result.txt")

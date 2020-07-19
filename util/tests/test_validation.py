@@ -19,7 +19,8 @@ class TestMatrixPathValidation(TestCase):
         except FileNotFoundError:
             pass
 
-    def create_matrix_file(self, path: str) -> None:
+    @staticmethod
+    def create_matrix_file(path: str) -> None:
         with open(path, "w+") as f:
             f.close()
 
