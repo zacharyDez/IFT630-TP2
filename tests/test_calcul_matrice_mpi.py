@@ -1,15 +1,10 @@
 import os
-import time
 from unittest import TestCase
 
 import matrix_mult_mpi
 import util.matrix_creation as mc
 import util.matrix_read as mr
 
-
-# TODO: must be able to call matrix_mult_mpi using mpi.
-#  Not sure how to design tests with that other than doign integration tests
-#  Example command that works for now: mpiexec -n 2 python matrix_mult_mpi.py
 
 class TestMatrixMult(TestCase):
 

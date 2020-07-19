@@ -1,8 +1,9 @@
 import sys
 
 from mpi4py import MPI
+import numpy as np
 
-from util.matrix_read import get_matrix_val_gen
+import util.matrix_read as mr
 import util.matrix_validation as mv
 
 
@@ -25,40 +26,56 @@ def main(dest_path: str, m1_path: str, m2_path: str) -> None:
     if not mv.is_matrix_sizes_equal(m1_path, m2_path):
         raise ValueError(f"{m1_path} or {m2_path} do not have matching sizes.")
 
+    # init parallel comm
     comm = MPI.COMM_WORLD
-    num_process = size = comm.Get_size()  # new: gives number of ranks in comm
+    num_process = comm.Get_size()  # new: gives number of ranks in comm
     rank = comm.Get_rank()
-
-    # default if rank is not 0
-    split_merge_data = None
 
     # process is administrator
     if rank == 0:
-        m1_data = [val for val in get_matrix_val_gen(m1_path)]
-        m2_data = [val for val in get_matrix_val_gen(m2_path)]
+
+        m1_data = [val for val in mr.get_matrix_val_gen(m1_path)]
+        m2_data = [val for val in mr.get_matrix_val_gen(m2_path)]
         merge_data = [(m1_data[i], m2_data[i]) for i in range(len(m1_data))]
 
-        ave, res = divmod(len(merge_data), num_process)
         split_merge_data = divide_array(merge_data, num_process - 1)
 
         for i in range(num_process - 1):
             req = comm.isend(split_merge_data[i], dest=i + 1)
             req.wait()
 
-        # TODO: writes contents
+        combined_data = []
+        for i in range(1, num_process):
+            req = comm.irecv(source=i)
+            data = req.wait()
+            print(f"administrator received result from {i}: {data}")
+
+            combined_data += data
+
+        result = np.reshape(combined_data, (5, 5))
+        print(result)
+
         with open(dest_path, "w+") as f:
-            pass
+            # writes row by row of result
+            f.write("\n".join(" ".join(map(str, x)) for x in result))
 
     # process is a worker
     else:
-        # Réception de données par appel bloquant.
         req = comm.irecv(source=0)
         data = req.wait()
         result = [mv[0] * mv[1] for mv in data]
-        print(f"Process {rank} received: {result}")
+
+        print(f"Process {rank} calculated: {result}")
+
+        req = comm.isend(result, dest=0)
+        req.wait()
 
     comm.Barrier()
 
 
 if __name__ == '__main__':
+    if len(sys.argv) != 4:
+        raise ValueError("Number of arguments passed does not match expected. \n Usage:\n\t",
+                         "mpiexec -n <num processes> python <result path> <matrix path> <matrix path>")
+
     main(sys.argv[1], sys.argv[2], sys.argv[3])
