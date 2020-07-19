@@ -23,6 +23,7 @@ class TestMatrixMult(TestCase):
     def tearDown(self) -> None:
         os.remove(self.p1)
         os.remove(self.p2)
+        os.remove("5x6-1.txt")
 
     def test_invalid_path_exception(self) -> None:
         # params following main are parameters passed

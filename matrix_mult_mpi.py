@@ -1,14 +1,9 @@
-import sys
-import math
 from mpi4py import MPI
-import numpy as np
 
-import util.matrix_validation as mv
-import util.matrix_read as mr
-import util.matrix_creation as mc
+from util.matrix_read import get_matrix_val_gen
 
 
-def divide_array(seq, num):
+def divide_array(seq: list, num: int) -> list:
     avg = len(seq) / float(num)
     out = []
     last = 0.0
@@ -20,44 +15,32 @@ def divide_array(seq, num):
     return out
 
 
-def main(dest_path: str, m1_path: str, m2_path: str) -> None:
-    if not mv.is_matrix_path_exist(m1_path) or not mv.is_matrix_path_exist(m2_path):
-        raise ValueError(f"{m1_path} or {m2_path} does not exist.")
+comm = MPI.COMM_WORLD
+num_process = size = comm.Get_size()  # new: gives number of ranks in comm
+rank = comm.Get_rank()
 
-    if not mv.is_matrix_sizes_equal(m1_path, m2_path):
-        raise ValueError(f"{m1_path} or {m2_path} do not have matching sizes.")
+# default if rank is not 0
+split_merge_data = None
 
-    # exceptions passed, initialisation for parallel processing
-    # Object for processing space
-    comm = MPI.COMM_WORLD
-    # size of processing space, represents number of working entities
-    size = comm.Get_size()
-    # Rank of current process, used as unique identifier
-    rank = comm.Get_rank()
+# process is administrator
+if rank == 0:
+    m1_data = [val for val in get_matrix_val_gen("m1.txt")]
+    m2_data = [val for val in get_matrix_val_gen("m2.txt")]
+    merge_data = [(m1_data[i], m2_data[i]) for i in range(len(m1_data))]
 
-    # defined receive buffer based on size of matrice and number of processes
-    dim = mr.get_matrix_size(m1_path)
-    num_elements_per_process = 10 #int(np.ceil(dim[0] * dim[0] / size - 1))
+    ave, res = divmod(len(merge_data), num_process)
+    split_merge_data = divide_array(merge_data, num_process - 1)
 
-    # Administrator process
-    if rank == 0:
-        m1_data = [val for val in mr.get_matrix_val_gen(m1_path)]
-        m2_data = [val for val in mr.get_matrix_val_gen(m2_path)]
+    for i in range(num_process - 1):
+        req = comm.isend(split_merge_data[i], dest=i + 1)
+        req.wait()
 
-        merge_data = [(m1_data[i], m2_data[i]) for i in range(len(m1_data))]
+# process is a worker
+else:
+    # Réception de données par appel bloquant.
+    req = comm.irecv(source=0)
+    data = req.wait()
+    result = [mv[0] * mv[1] for mv in data]
+    print(f"Process {rank} received: {result}")
 
-    else:
-        # must reference data to avoid reference before assignment in workers
-        merge_data = None
-
-    # Worker process
-    receive_buffer = np.empty(num_elements_per_process, dtype='d')
-    comm.Scatter(merge_data, receive_buffer, root=0)
-
-    print(f"Process {rank} received: {receive_buffer}")
-
-
-if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2], sys.argv[3])
-    # TODO: fix being able to call with more than two processes
-    #  Example command that works for now: mpiexec -n 2 python matrix_mult_mpi.py result.txt m1.txt m2.txt
+comm.Barrier()
