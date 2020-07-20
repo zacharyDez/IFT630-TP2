@@ -49,12 +49,26 @@ int main()
     std::vector<int> matrix1 = read_file("matrice1");
     std::vector<int> matrix2 = read_file("matrice2");
 
+
     // Obtention des plateformes.
     std::vector<cl::Platform> available_platforms;
 	cl::Platform::get(&available_platforms);
 	if (available_platforms.size() == 0) {
 		std::cout << "No platforms found. Check OpenCL installation!" << std::endl;
 		exit(1);
+	}
+
+	// Affichage des informations OpenCL (plateformes, versions et périphériques).
+	for (auto &platform : available_platforms) {
+		std::string platform_name = platform.getInfo<CL_PLATFORM_NAME>();
+		std::string version = platform.getInfo<CL_PLATFORM_VERSION>();
+		std::cout << "Found platform '" << platform_name << "' with version : '" << version << "'" << std::endl;
+
+		std::vector<cl::Device> available_devices;
+		platform.getDevices(CL_DEVICE_TYPE_ALL, &available_devices);
+		for (auto &device : available_devices) {
+			std::cout << "	With device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+		}
 	}
 
 	// Obtention de la platforme d'exécution du programme (premier disponible).
@@ -80,14 +94,14 @@ int main()
 	// https://www.khronos.org/registry/OpenCL/specs/opencl-1.2.pdf
 	// https://www.khronos.org/registry/OpenCL/specs/opencl-2.0.pdf
 	std::string kernel_code =
-			"	void multiply(int n, __global float *A, __global float *B, __global float *C) {						"
+			"	void kernel multiply(__global float *A, __global float *B, __global float *C, int n) {				"
 			"   	int gid1 = get_global_id(0);																	"
 			"   	int gid2 = get_global_id(1);																	"
 			"		float value = 0;																				"
-            "   	for(int k = 0; k < n; ++k)																		"
+            "   	for(int i = 0; i < n; ++i)																		"
 			"		{																								"
-			"			float elementA = A[gid2 * n + k];															"
-			"			float elementB = B[k * n + gid1];															"	
+			"			float elementA = A[gid2 * n + i];															"
+			"			float elementB = B[i * n + gid1];															"	
 			"			value += elementA * elementB;																"
 			"		}																								"	
 			"		C[gid2 * n + gid1] = value;																		"
@@ -110,6 +124,7 @@ int main()
 	}
 
 	int size = matrix1.size();
+	int sqrtSize = sqrt(size);
 
 	// Création des tampons GPU.
 	cl::Buffer buffer_A(context, CL_MEM_READ_WRITE, sizeof(int) * size);
@@ -124,12 +139,15 @@ int main()
 	int* A = &matrix1[0];
 	int* B = &matrix2[0];
 
+	// std::cout << size << std::endl;
+	
+
 	queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, sizeof(int) * size, A);
 	queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, sizeof(int) * size, B);
 
 
 	// --------------------------------------------------------------------------------
-	// Exécution du noyau nommé «demo».
+	// Exécution du noyau nommé «multiply».
 	// --------------------------------------------------------------------------------
 
 	//     Première avec foncteurs-noyaux (non disponible en OpenCL 1.2 mais l'est en 1.1 et 2.x).
@@ -140,21 +158,20 @@ int main()
 
 	//     Version générique.
 	//     {
-	cl::Kernel kernel_add = cl::Kernel(program, "demo");
+	cl::Kernel kernel_add = cl::Kernel(program, "multiply");
 
 	// Assignation des paramètres du noyau.
-	kernel_add.setArg(0, sqrt(size));
-	kernel_add.setArg(1, buffer_A);
-	kernel_add.setArg(2, buffer_B);
-	kernel_add.setArg(3, buffer_C);
+	kernel_add.setArg(0, buffer_A);
+	kernel_add.setArg(1, buffer_B);
+	kernel_add.setArg(2, buffer_C);
+	kernel_add.setArg(3, sqrtSize);
 
 	// Paramètres de «enqueueNDRangeKernel» :
 	//  - const Kernel &kernel  : Noyau à exécuter
 	//  - const NDRange &offset : Décalages des indices globaux (cl::NullRange == aucun).
 	//  - const NDRange &global : Dimension des items de travail (ex: «X», «X * Y», «X * Y * Z», etc.).
 	//  - const NDRange &local  : Dimension des groupes de travail locaux (nombre de work-items par work-group).
-	std::cout << "Je cause le seg fault, you mad?" << std::endl;
-	queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(size, size), cl::NullRange);
+	queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(sqrtSize, sqrtSize), cl::NullRange);
 
 	// Exemple d'une exécution en 2D.
 	//queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(800, 600), cl::NullRange);
@@ -168,11 +185,18 @@ int main()
 	queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, sizeof(int) * size, C);
 
 	// Affichage des résultats à la console.
+	int P[sqrtSize][sqrtSize];
 	std::cout << " result:" << std::endl;
 	for(int i = 0; i < size; i++) {
-		std::cout << C[i] << " ";
+		P[i][i%sqrtSize] = C[i]; 
 	}
 
+	for(int i = 0; i < sqrtSize; i++) {
+		for(int j = 0; j < sqrtSize; j++) {
+			std::cout << P[i][j] << " ";
+		}	
+		std::cout << std::endl;	
+	}
 
     return 0;
 }
