@@ -3,10 +3,11 @@
 ## Équipe
 
 Zachary Déziel, DEZZ2201, 17 022 847
+Michael Durand-Chorel, 17 141 086
 
 ## Partie 1
 
-### TODO: spécifier les détails pour la partie 1
+Builder main.cpp avec g++ main.cpp -lOpenCL. Prendre en note que c'est 'L' minuscule.
 
 ## Partie 2
 
