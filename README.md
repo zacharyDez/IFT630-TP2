@@ -7,7 +7,8 @@ Michael Durand-Chorel, 17 141 086
 
 ## Partie 1
 
-Builder main.cpp avec g++ main.cpp -lOpenCL. Prendre en note que c'est 'L' minuscule.
+Builder main.cpp avec g++ main.cpp -lOpenCL dans un interface linux. Prendre en note que c'est 'L' minuscule.
+Ensuite, exécuter le fichier de sortie avec ./a.out.
 
 ## Partie 2
 
