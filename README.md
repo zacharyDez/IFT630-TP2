@@ -4,6 +4,7 @@
 
 Zachary Déziel, DEZZ2201, 17 022 847
 Michael Durand-Chorel, 17 141 086
+Benjamin Dagenais dagb1901 20152834
 
 ## Partie 1
 
